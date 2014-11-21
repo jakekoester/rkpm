@@ -1,11 +1,12 @@
+using PyPlot
+
 function H_compute(x,xi,N)
     # Compute the vector of basis function for a given
     # location, x, nodal point, xi, and order, N
 
     H = zeros(N+1)
-    H[1] = 1.
 
-    for i = 2:N+1
+    for i = 1:N+1
         H[i] = (x - xi)^(i-1)
     end
 
@@ -66,52 +67,93 @@ function reproduce_u(psi,u)
     return u_a
 end
 
-
 function refinement_study(N,a,u_order,h_list,e_per_h)
     # h Refinement study of reproducing u with RK 
+    # reproduces u(x) with x = 0:1
     #
     # N 	= Order of basis functions
-    # a 	= Support size
+    # a 	a * h = Support size
     # u_order 	= Order of function to reproduce
-    #             {zero, linear, quadratic, cubic}
     # h_list 	= array of different h sizes
     # e_per_h	= number of evaluation points in h interval
 
-    x = [0.01:0.01:1.]  # Evaluation points
-    xi = [0.:0.1:1.]      # Nodal Points
-    
-    psi = shape_functions(x,xi,N,a)
-    
-    # Input function (at nodal points)
-    u=zeros(length(xi))
-    for i=1:length(xi)
-        u[i]=(xi[i]/xi[end])^2.
+    println("*****************************************************")
+    println(string("Starting Convergence Study: N=",N,
+        	   " a=",a, " uorder=",u_order," h_list=", 
+		   h_list," e=",e_per_h))
+    println("*****************************************************")
+
+    u_enorm = zeros(length(h_list))  # allocate for storing error norm
+
+    for k=1:length(h_list)
+
+        tstart = time()
+
+	h = h_list[k]   # this h
+        println(string("h=",h))
+        eh = h / e_per_h # spacing of eval points
+
+        x = [eh/2:eh:1.]  # Evaluation points
+        xi = [0.:h:1.]    # Nodal Points
+       
+        # Create shape functions
+        psi = shape_functions(x,xi,N,a*h)
+       
+        # Input function (at nodal points)
+        u=zeros(length(xi))
+        for i=1:length(xi)
+            u[i]=(xi[i]/xi[end])^u_order
+        end
+        
+        # True values (at evaluation points)
+        u_true=zeros(length(x))
+        for i=1:length(x)
+            u_true[i]=(x[i]/xi[end])^u_order
+        end
+       
+        # Reproduce function, check error, error norm
+        u_a = reproduce_u(psi,u)
+        u_error = u_a - u_true
+        u_enorm[k] = norm(u_error)/length(x)
+        
+        figure()
+        subplot(2,1,1)
+        plot(xi,u,label="in")
+        plot(x,u_a,"gx",label="out")
+        ylabel("u(x)")
+        legend(loc="upper left")
+        
+        subplot(2,1,2)
+        plot(x,u_error,label="error")
+        ylabel("error")
+        
+        savefig(string("pdfs/reproduced_N=",N,"_a=",a,
+		"_uorder=",u_order,"_h=",h,"_e=",e_per_h,".pdf"))
+        tend = time()
+        println(string("Time to complete: ",tend-tstart))
     end
-    
-    # True values (at evaluation points)
-    u_true=zeros(length(x))
-    for i=1:length(x)
-        u_true[i]=(x[i]/x[end])^2.
-    end
-    
-    u_a = reproduce_u(psi,u)
-    u_error = u_a - u_true
-    
-    using PyPlot
     figure()
-    subplot(2,1,1)
-    plot(xi,u,label="in")
-    plot(x,u_a,"gx",label="out")
-    ylabel("u(x)")
-    legend(loc="upper left")
+    loglog(h_list,u_enorm,label="L2 error")
+    ylabel("L2 error")
     
-    subplot(2,1,2)
-    plot(x,u_error,label="error")
-    ylabel("error")
-    
-    savefig("reproduced.pdf")
+    savefig(string("pdfs/error_reproduced_N=",N,"_a=",a,
+    	"_uorder=",u_order,"_e=",e_per_h,".pdf"))
+    return u_enorm
 end
 
+h_list = [0.1,0.01,0.001]
 
-N = 2   # Order of basis functions
-a = 3.1 # Support size
+e_1 = refinement_study(1,1.1,2,h_list,10)
+e_2 = refinement_study(1,1.1,3,h_list,10)
+e_3 = refinement_study(2,2.1,3,h_list,10)
+
+figure()
+loglog(h_list,e_1,label=string("N=1 a=1.1*h uorder=2, e=10*h"))
+loglog(h_list,e_3,label=string("N=1 a=1.1*h uorder=3, e=10*h"))
+loglog(h_list,e_2,label=string("N=2 a=2.1*h uorder=3, e=10*h"))
+ylabel("L2 error")
+xlabel("h size")
+legend(loc="upper left")
+grid()
+
+savefig(string("pdfs/all_error.pdf"))
