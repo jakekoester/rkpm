@@ -18,7 +18,7 @@ function phi_a(x,xi,a)
     # Compute the kernel value using the cubic spline 
     # kernel function
     
-    z = abs((x-xi)/a) # abs was a typo (excluded) from the '96 paper
+    z = abs((x-xi)/a) # abs was a typo (excluded) from the 96 paper
     
     if abs(z) <= 0.5
         phi_z = 2./3. - 4.*z^2. + 4.*z^3.
@@ -29,6 +29,24 @@ function phi_a(x,xi,a)
     end
     
     return phi_z
+    
+end
+
+function d_phi_a(x,xi,a)
+    # Compute the kernel derivative using the cubic spline 
+    # kernel function
+    
+    z = abs((x-xi)/a) 
+    
+    if abs(z) <= 0.5
+        d_phi_z = (-8./a*z + 12./a*z^2.)*sign(x-xi)
+    elseif abs(z) <= 1.
+        d_phi_z = (-4./a + 8./a*z - 4./a*z^2.)*sign(x-xi)
+    else
+        d_phi_z = 0.
+    end
+    
+    return d_phi_z
     
 end
 
@@ -67,7 +85,53 @@ function reproduce_u(psi,u)
     return u_a
 end
 
-function refinement_study(N,a,u_order,h_list,e_per_h)
+function test()
+    # Check phi and derivative of phi
+    x=[-10:10]
+    xi=0
+    phi_z = zeros(length(x))
+    num_d_phi_z = zeros(length(x))
+    d_phi_z = zeros(length(x))
+    for i=1:length(x)
+        phi_z[i] = phi_a(x[i],xi,10)
+        if i > 1
+        	num_d_phi_z[i] = (phi_z[i]-phi_z[i-1])/(x[i]-x[i-1])
+        else
+        	num_d_phi_z[i] = 0
+        end
+        d_phi_z[i] = d_phi_a(x[i],xi,10)
+    end
+    figure()
+    plot(x,phi_z)
+    plot(x,d_phi_z)
+    plot(x,num_d_phi_z,"bx")
+    grid()
+    savefig(string("pdfs/phi_z_10.pdf"))
+    
+    x=[-1:0.1:1]
+    xi=0
+    phi_z = zeros(length(x))
+    num_d_phi_z = zeros(length(x))
+    d_phi_z = zeros(length(x))
+    d_phi_z = zeros(length(x))
+    for i=1:length(x)
+        phi_z[i] = phi_a(x[i],xi,1)
+        if i > 1
+        	num_d_phi_z[i] = (phi_z[i]-phi_z[i-1])/(x[i]-x[i-1])
+        else
+        	num_d_phi_z[i] = 0
+        end
+        d_phi_z[i] = d_phi_a(x[i],xi,1)
+    end
+    figure()
+    plot(x,phi_z)
+    plot(x,d_phi_z)
+    plot(x,num_d_phi_z,"bx")
+    grid()
+    savefig(string("pdfs/phi_z.pdf"))
+end
+
+function refinement_study(N,a,u_order,h_list,e_points)
     # h Refinement study of reproducing u with RK 
     # reproduces u(x) with x = 0:1
     #
@@ -75,12 +139,12 @@ function refinement_study(N,a,u_order,h_list,e_per_h)
     # a 	a * h = Support size
     # u_order 	= Order of function to reproduce
     # h_list 	= array of different h sizes
-    # e_per_h	= number of evaluation points in h interval
+    # e_points	= number of evaluation points
 
     println("*****************************************************")
     println(string("Starting Convergence Study: N=",N,
         	   " a=",a, " uorder=",u_order," h_list=", 
-		   h_list," e=",e_per_h))
+		   h_list," e=",e_points))
     println("*****************************************************")
 
     u_enorm = zeros(length(h_list))  # allocate for storing error norm
@@ -91,9 +155,9 @@ function refinement_study(N,a,u_order,h_list,e_per_h)
 
 	h = h_list[k]   # this h
         println(string("h=",h))
-        eh = h / e_per_h # spacing of eval points
+        eh = 1. / e_points # spacing of eval points
 
-        x = [eh/2:eh:1.]  # Evaluation points
+        x = [0:eh:1.]  # Evaluation points
         xi = [0.:h:1.]    # Nodal Points
        
         # Create shape functions
@@ -128,7 +192,7 @@ function refinement_study(N,a,u_order,h_list,e_per_h)
         ylabel("error")
         
         savefig(string("pdfs/reproduced_N=",N,"_a=",a,
-		"_uorder=",u_order,"_h=",h,"_e=",e_per_h,".pdf"))
+		"_uorder=",u_order,"_h=",h,"_e=",e_points,".pdf"))
         tend = time()
         println(string("Time to complete: ",tend-tstart))
     end
@@ -137,20 +201,20 @@ function refinement_study(N,a,u_order,h_list,e_per_h)
     ylabel("L2 error")
     
     savefig(string("pdfs/error_reproduced_N=",N,"_a=",a,
-    	"_uorder=",u_order,"_e=",e_per_h,".pdf"))
+    	"_uorder=",u_order,"_e=",e_points,".pdf"))
     return u_enorm
 end
 
 h_list = [0.1,0.01,0.001]
 
-e_1 = refinement_study(1,1.1,2,h_list,10)
-e_2 = refinement_study(1,1.1,3,h_list,10)
-e_3 = refinement_study(2,2.1,3,h_list,10)
+e_1 = refinement_study(1,1.1,2,h_list,10000)
+e_2 = refinement_study(1,1.1,3,h_list,10000)
+e_3 = refinement_study(2,2.1,3,h_list,10000)
 
 figure()
-loglog(h_list,e_1,label=string("N=1 a=1.1*h uorder=2, e=10*h"))
-loglog(h_list,e_3,label=string("N=1 a=1.1*h uorder=3, e=10*h"))
-loglog(h_list,e_2,label=string("N=2 a=2.1*h uorder=3, e=10*h"))
+loglog(h_list,e_1,label=string("N=1 a=1.1*h uorder=2, e=1.E4"))
+loglog(h_list,e_2,label=string("N=1 a=1.1*h uorder=3, e=1.E4"))
+loglog(h_list,e_3,label=string("N=2 a=2.1*h uorder=3, e=1.E4"))
 ylabel("L2 error")
 xlabel("h size")
 legend(loc="upper left")

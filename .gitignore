@@ -1,4 +1,4 @@
 *~
 *.pdf
 pdfs
-.ipynb_checkpoints*
+.ipynb_checkpoint*
