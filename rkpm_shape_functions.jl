@@ -228,7 +228,7 @@ function refinement_study(N,a,u_order,h_list,e_points)
         # Reproduce function, check error, error norm
         u_a = reproduce_u(psi,u)
         u_error = u_a - u_true
-        u_enorm[k] = norm(u_error)/length(x)
+        u_enorm[k] = norm(u_error)/length(x)^0.5
         
         figure()
         subplot(2,1,1)
@@ -313,7 +313,7 @@ function d_refinement_study(N,a,u_order,h_list,e_points)
         # Reproduce function, check error, error norm
         d_u_a = reproduce_u(d_psi,u)
         d_u_error = d_u_a - d_u_true
-        d_u_enorm[k] = norm(d_u_error)/length(x)
+        d_u_enorm[k] = norm(d_u_error)/length(x)^0.5
         
         figure()
         subplot(2,1,1)
