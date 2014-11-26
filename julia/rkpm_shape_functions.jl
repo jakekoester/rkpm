@@ -314,6 +314,7 @@ function d_refinement_study(N,a,u_order,h_list,e_points)
         d_u_a = reproduce_u(d_psi,u)
         d_u_error = d_u_a - d_u_true
         d_u_enorm[k] = norm(d_u_error)/length(x)^0.5
+        # Need to also add L2 norm of u
         
         figure()
         subplot(2,1,1)
@@ -341,7 +342,7 @@ function d_refinement_study(N,a,u_order,h_list,e_points)
     figure()
     loglog(h_list,d_u_enorm,label=
 	    string("N=",N," a=",a,"h uorder=",u_order," e=",e_points))
-    ylabel("L2 error")
+    ylabel("H1 error")
     xlabel("h size")
     legend(loc="best")
     grid()
@@ -381,7 +382,7 @@ function run_du_refine()
     loglog(h_list,e_1,label=string("N=1 a=1.1*h uorder=2, e=1.E4"))
     loglog(h_list,e_2,label=string("N=1 a=1.1*h uorder=3, e=1.E4"))
     loglog(h_list,e_3,label=string("N=2 a=2.1*h uorder=3, e=1.E4"))
-    ylabel("L2 error")
+    ylabel("H1 error")
     xlabel("h size")
     legend(loc="lower right")
     grid()
