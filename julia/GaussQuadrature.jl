@@ -1,15 +1,21 @@
+module GaussQuadrature
 using PyPlot
 using GaussTables
 
-function gauss_pts(intervals, order)
+function gauss_pts(interval_pts, order)
    gp,gw = GaussTables.pts_and_wts(order)
 
-   pts = zeros(length(intervals-1)*order)
-   wts = zeros(length(intervals-1)*order)
+   # Sorting because tables are not, get point permutation, apply
+   perm = sortperm(gp)
+   gp = gp[perm]
+   gw = gw[perm]
 
-   for i=1:length(intervals)-1
-      a = intervals[i]
-      b = intervals[i+1]
+   pts = zeros((length(interval_pts)-1)*order)
+   wts = zeros((length(interval_pts)-1)*order)
+
+   for i=1:length(interval_pts)-1
+      a = interval_pts[i]
+      b = interval_pts[i+1]
       pts[(i-1)*order+1:i*order] = gp * (b-a)/2. + (b+a)/2.
       wts[(i-1)*order+1:i*order] = gw * (b-a)/2.
    end
@@ -61,13 +67,16 @@ function test(u_order,h,g_order)
 
 end
 
-test(2,0.1,2)
-test(3,0.1,2)
-test(4,0.1,2)
-test(5,0.1,2)
-test(6,0.1,2)
-test(2,0.1,3)
-test(3,0.1,3)
-test(4,0.1,3)
-test(5,0.1,3)
-test(6,0.1,3)
+function run_tests()
+    test(2,0.1,2)
+    test(3,0.1,2)
+    test(4,0.1,2)
+    test(5,0.1,2)
+    test(6,0.1,2)
+    test(2,0.1,3)
+    test(3,0.1,3)
+    test(4,0.1,3)
+    test(5,0.1,3)
+    test(6,0.1,3)
+end
+end
