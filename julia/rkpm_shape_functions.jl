@@ -1,4 +1,5 @@
 using PyPlot
+rc("font", size=8)
 
 function H_compute(x,xi,N)
     # Compute the vector of basis function for a given
@@ -198,6 +199,8 @@ function refinement_study(N,a,u_order,h_list,e_points)
     println("*****************************************************")
 
     u_enorm = zeros(length(h_list))  # allocate for storing error norm
+    d_u_enorm = zeros(length(h_list))  
+    d_u_semi_enorm = zeros(length(h_list)) 
 
     for k=1:length(h_list)
 
@@ -212,6 +215,9 @@ function refinement_study(N,a,u_order,h_list,e_points)
        
         # Create shape functions
         psi = shape_functions(x,xi,N,a*h)
+
+        # Create shape functions
+        d_psi = d_shape_functions(x,xi,N,a*h)
        
         # Input function (at nodal points)
         u=zeros(length(xi))
@@ -225,13 +231,27 @@ function refinement_study(N,a,u_order,h_list,e_points)
             u_true[i]=(x[i]/xi[end])^u_order
         end
        
+        # True derivative values (at evaluation points)
+        d_u_true=zeros(length(x))
+        for i=1:length(x)
+            d_u_true[i]=u_order*(x[i]/xi[end])^(u_order-1)
+        end
+
         # Reproduce function, check error, error norm
         u_a = reproduce_u(psi,u)
         u_error = u_a - u_true
         u_enorm[k] = norm(u_error)/length(x)^0.5
         
+        # Reproduce function derivative, check error, error norm
+        d_u_a = reproduce_u(d_psi,u)
+        d_u_error = d_u_a - d_u_true
+        d_u_semi_enorm[k] = norm(d_u_error)/length(x)^0.5
+        d_u_enorm[k] = u_enorm[k] + d_u_semi_enorm[k]
+
+        # Function Plots
         figure()
-        subplot(2,1,1)
+        subplot(2,2,1)
+	tight_layout(pad=6., w_pad=6., h_pad=6.)
         title(string("N=",N," a=",a,
 		" uorder=",u_order," h=",h," e=",e_points))
         plot(xi,u,label="in")
@@ -241,85 +261,15 @@ function refinement_study(N,a,u_order,h_list,e_points)
         legend(loc="upper left")
         grid()
         
-        subplot(2,1,2)
+        subplot(2,2,2)
         plot(x,u_error,label="error")
         ticklabel_format(style="sci", axis="y", scilimits=(0,0))
         ylabel("error")
         xlabel("x")
         grid()
         
-        savefig(string("pdfs/reproduced_N=",N,"_a=",a,
-		"_uorder=",u_order,"_h=",h,"_e=",e_points,".pdf"))
-        tend = time()
-        println(string("Time to complete: ",tend-tstart))
-    end
-    figure()
-    loglog(h_list,u_enorm,label=
-	    string("N=",N," a=",a,"h uorder=",u_order," e=",e_points))
-    ylabel("L2 error")
-    xlabel("h size")
-    legend(loc="best")
-    grid()
-    
-    savefig(string("pdfs/error_reproduced_N=",N,"_a=",a,
-    	"_uorder=",u_order,"_e=",e_points,".pdf"))
-    return u_enorm
-end
-
-function d_refinement_study(N,a,u_order,h_list,e_points)
-    # h Refinement study of reproducing derivative of u with RK 
-    # reproduces d_u(x) with x = 0:1
-    #
-    # N 	= Order of basis functions
-    # a 	a * h = Support size
-    # u_order 	= Order of function to reproduce
-    # h_list 	= array of different h sizes
-    # e_points	= number of evaluation points
-
-    println("*****************************************************")
-    println(string("Starting Derivative Convergence Study: N=",N,
-        	   " a=",a, " uorder=",u_order," h_list=", 
-		   h_list," e=",e_points))
-    println("*****************************************************")
-
-    d_u_enorm = zeros(length(h_list))  # allocate for storing error norm
-
-    for k=1:length(h_list)
-
-        tstart = time()
-
-	h = h_list[k]   # this h
-        println(string("h=",h))
-        eh = 1. / e_points # spacing of eval points
-
-        x = [0:eh:1.]  # Evaluation points
-        xi = [0.:h:1.]    # Nodal Points
-       
-        # Create shape functions
-        d_psi = d_shape_functions(x,xi,N,a*h)
-       
-        # Input function (at nodal points)
-        u=zeros(length(xi))
-        for i=1:length(xi)
-            u[i]=(xi[i]/xi[end])^u_order
-        end
-        
-        # True derivative values (at evaluation points)
-        d_u_true=zeros(length(x))
-        for i=1:length(x)
-            d_u_true[i]=u_order*(x[i]/xi[end])^(u_order-1)
-        end
-       
-        # Reproduce function, check error, error norm
-        d_u_a = reproduce_u(d_psi,u)
-        d_u_error = d_u_a - d_u_true
-        d_u_enorm[k] = norm(d_u_error)/length(x)^0.5
-        # Need to also add L2 norm of u
-        
-        figure()
-        subplot(2,1,1)
-        title(string("N=",N," a=",a,
-		" uorder=",u_order," h=",h," e=",e_points))
+        # Function Derivative Plots
+        subplot(2,2,3)
         plot(x,d_u_true,label="in")
         plot(x,d_u_a,"g--",label="out")
         ylabel("du/dx")
@@ -327,68 +277,130 @@ function d_refinement_study(N,a,u_order,h_list,e_points)
         legend(loc="upper left")
         grid()
         
-        subplot(2,1,2)
+        subplot(2,2,4)
         plot(x,d_u_error,label="error")
         ticklabel_format(style="sci", axis="y", scilimits=(0,0))
         ylabel("error")
         xlabel("x")
         grid()
         
-        savefig(string("pdfs/derivative_reproduced_N=",N,"_a=",a,
+        savefig(string("pdfs/reproduced_N=",N,"_a=",a,
 		"_uorder=",u_order,"_h=",h,"_e=",e_points,".pdf"))
+
         tend = time()
         println(string("Time to complete: ",tend-tstart))
     end
+
+    u_e_slope= (log(u_enorm[1])-log(u_enorm[end]))/(log(h_list[1])-log(h_list[end]))
+    d_e_slope = (log(d_u_enorm[1])-log(d_u_enorm[end]))/(log(h_list[1])-log(h_list[end]))
+    d_se_slope = (log(d_u_semi_enorm[1])-log(d_u_semi_enorm[end]))/(log(h_list[1])-log(h_list[end]))
+
+    # All L2 Error Plots
     figure()
-    loglog(h_list,d_u_enorm,label=
+    title(string("Error - N=",N," a=",a,
+        " uorder=",u_order," e=",e_points))
+    subplot(3,1,1)
+    tight_layout(pad=3., w_pad=3., h_pad=3.)
+    loglog(h_list,u_enorm,label=
 	    string("N=",N," a=",a,"h uorder=",u_order," e=",e_points))
-    ylabel("H1 error")
+    annotate(string("Rate: ",u_e_slope)[1:12], xy=(h_list[end-1],u_enorm[end-1]),
+             horizontalalignment="right") 
+    ylabel("L2")
     xlabel("h size")
     legend(loc="best")
     grid()
     
-    savefig(string("pdfs/derivative_error_reproduced_N=",N,"_a=",a,
+    # All H1 Error Plots
+    subplot(3,1,2)
+    loglog(h_list,d_u_enorm,label=
+	    string("N=",N," a=",a,"h uorder=",u_order," e=",e_points))
+    annotate(string("Rate: ",d_e_slope)[1:12], xy=(h_list[end-1],d_u_enorm[end-1]),
+             horizontalalignment="right") 
+    ylabel("H1")
+    xlabel("h size")
+    legend(loc="best")
+    grid()
+    
+    # All H1 Error Plots
+    subplot(3,1,3)
+    loglog(h_list,d_u_semi_enorm,label=
+	    string("N=",N," a=",a,"h uorder=",u_order," e=",e_points))
+    annotate(string("Rate: ",d_se_slope)[1:12], xy=(h_list[end-1],d_u_semi_enorm[end-1]),
+             horizontalalignment="right") 
+    ylabel("H1 Semi-Norm")
+    xlabel("h size")
+    legend(loc="best")
+    grid()
+    savefig(string("pdfs/error_reproduced_N=",N,"_a=",a,
     	"_uorder=",u_order,"_e=",e_points,".pdf"))
-    return d_u_enorm
+
+    return u_enorm, d_u_enorm, d_u_semi_enorm
 end
 
 function run_u_refine()
     h_list = [0.1,0.01,0.001]
     
-    e_1 = refinement_study(1,1.1,2,h_list,10000)
-    e_2 = refinement_study(1,1.1,3,h_list,10000)
-    e_3 = refinement_study(2,2.1,3,h_list,10000)
-    
-    figure()
-    loglog(h_list,e_1,label=string("N=1 a=1.1*h uorder=2, e=1.E4"))
-    loglog(h_list,e_2,label=string("N=1 a=1.1*h uorder=3, e=1.E4"))
-    loglog(h_list,e_3,label=string("N=2 a=2.1*h uorder=3, e=1.E4"))
-    ylabel("L2 error")
-    xlabel("h size")
-    legend(loc="lower right")
-    grid()
-    
-    savefig(string("pdfs/all_error.pdf"))
-end
+    e_1, d_e_1, d_se_1 = refinement_study(1,1.1,2,h_list,10000)
+    e_2, d_e_2, d_se_2 = refinement_study(1,1.1,3,h_list,10000)
+    e_3, d_e_3, d_se_3 = refinement_study(2,2.1,3,h_list,10000)
 
-function run_du_refine()
-    h_list = [0.1,0.01,0.001]
-    
-    e_1 = d_refinement_study(1,1.1,2,h_list,10000)
-    e_2 = d_refinement_study(1,1.1,3,h_list,10000)
-    e_3 = d_refinement_study(2,2.1,3,h_list,10000)
+    e_1_slope = (log(e_1[1])-log(e_1[end]))/(log(h_list[1])-log(h_list[end]))
+    e_2_slope = (log(e_2[1])-log(e_2[end]))/(log(h_list[1])-log(h_list[end]))
+    e_3_slope = (log(e_3[1])-log(e_3[end]))/(log(h_list[1])-log(h_list[end]))
+    d_e_1_slope = (log(d_e_1[1])-log(d_e_1[end]))/(log(h_list[1])-log(h_list[end]))
+    d_e_2_slope = (log(d_e_2[1])-log(d_e_2[end]))/(log(h_list[1])-log(h_list[end]))
+    d_e_3_slope = (log(d_e_3[1])-log(d_e_3[end]))/(log(h_list[1])-log(h_list[end]))
+    d_se_1_slope = (log(d_se_1[1])-log(d_se_1[end]))/(log(h_list[1])-log(h_list[end]))
+    d_se_2_slope = (log(d_se_2[1])-log(d_se_2[end]))/(log(h_list[1])-log(h_list[end]))
+    d_se_3_slope = (log(d_se_3[1])-log(d_se_3[end]))/(log(h_list[1])-log(h_list[end]))
     
     figure()
+    subplot(3,1,1)
+    tight_layout(pad=3., w_pad=3., h_pad=3.)
     loglog(h_list,e_1,label=string("N=1 a=1.1*h uorder=2, e=1.E4"))
     loglog(h_list,e_2,label=string("N=1 a=1.1*h uorder=3, e=1.E4"))
     loglog(h_list,e_3,label=string("N=2 a=2.1*h uorder=3, e=1.E4"))
-    ylabel("H1 error")
+    annotate(string("Rate: ",e_1_slope)[1:12], xy=((h_list[end-1]+h_list[end])/2,(e_1[end-1]+e_1[end])/2),
+             horizontalalignment="left",verticalalignment="top") 
+    annotate(string("Rate: ",e_2_slope)[1:12], xy=(h_list[end-1],e_2[end-1]),
+             horizontalalignment="right") 
+    annotate(string("Rate: ",e_3_slope)[1:12], xy=(h_list[end-1],e_3[end-1]),
+             horizontalalignment="right") 
+    ylabel("L2")
     xlabel("h size")
     legend(loc="lower right")
     grid()
-    
-    savefig(string("pdfs/derivative_all_error.pdf"))
+
+    subplot(3,1,2)
+    loglog(h_list,d_e_1,label=string("N=1 a=1.1*h uorder=2, e=1.E4"))
+    loglog(h_list,d_e_2,label=string("N=1 a=1.1*h uorder=3, e=1.E4"))
+    loglog(h_list,d_e_3,label=string("N=2 a=2.1*h uorder=3, e=1.E4"))
+    annotate(string("Rate: ",d_e_1_slope)[1:12], xy=((h_list[end-1]+h_list[end])/2,(d_e_1[end-1]+d_e_1[end])/2),
+             horizontalalignment="left",verticalalignment="top") 
+    annotate(string("Rate: ",d_e_2_slope)[1:12], xy=(h_list[end-1],d_e_2[end-1]),
+             horizontalalignment="right") 
+    annotate(string("Rate: ",d_e_3_slope)[1:12], xy=(h_list[end-1],d_e_3[end-1]),
+             horizontalalignment="right") 
+    ylabel("H1")
+    xlabel("h size")
+    legend(loc="lower right")
+    grid()
+
+    subplot(3,1,3)
+    loglog(h_list,d_se_1,label=string("N=1 a=1.1*h uorder=2, e=1.E4"))
+    loglog(h_list,d_se_2,label=string("N=1 a=1.1*h uorder=3, e=1.E4"))
+    loglog(h_list,d_se_3,label=string("N=2 a=2.1*h uorder=3, e=1.E4"))
+    annotate(string("Rate: ",d_se_1_slope)[1:12], xy=((h_list[end-1]+h_list[end])/2,(d_se_1[end-1]+d_se_1[end])/2),
+             horizontalalignment="left",verticalalignment="top") 
+    annotate(string("Rate: ",d_se_2_slope)[1:12], xy=(h_list[end-1],d_se_2[end-1]),
+             horizontalalignment="right") 
+    annotate(string("Rate: ",d_se_3_slope)[1:12], xy=(h_list[end-1],d_se_3[end-1]),
+             horizontalalignment="right") 
+    ylabel("H1 Semi-Norm")
+    xlabel("h size")
+    legend(loc="lower right")
+    grid()
+    savefig(string("pdfs/error.pdf"))
 end
 
 run_u_refine()
-run_du_refine()
