@@ -1,5 +1,6 @@
 using PyPlot
-rc("font", size=8)
+rc("font", size=7)
+using GaussQuadrature
 
 function H_compute(x,xi,N)
     # Compute the vector of basis function for a given
@@ -182,7 +183,7 @@ function test()
     savefig(string("pdfs/phi_z.pdf"))
 end
 
-function refinement_study(N,a,u_order,h_list,e_points)
+function refinement_study(N,a,u_order,h_list,g_order)
     # h Refinement study of reproducing u with RK 
     # reproduces u(x) with x = 0:1
     #
@@ -190,12 +191,12 @@ function refinement_study(N,a,u_order,h_list,e_points)
     # a 	a * h = Support size
     # u_order 	= Order of function to reproduce
     # h_list 	= array of different h sizes
-    # e_points	= number of evaluation points
+    # g_order	= order of gauss quadrature for integrating error
 
     println("*****************************************************")
     println(string("Starting Convergence Study: N=",N,
         	   " a=",a, " uorder=",u_order," h_list=", 
-		   h_list," e=",e_points))
+		   h_list," gorder=",g_order))
     println("*****************************************************")
 
     u_enorm = zeros(length(h_list))  # allocate for storing error norm
@@ -207,11 +208,9 @@ function refinement_study(N,a,u_order,h_list,e_points)
         tstart = time()
 
 	h = h_list[k]   # this h
-        println(string("h=",h))
-        eh = 1. / e_points # spacing of eval points
 
-        x = [0:eh:1.]  # Evaluation points
         xi = [0.:h:1.]    # Nodal Points
+        x, w = GaussQuadrature.gauss_pts(xi,g_order) # Evaluation points and weights for GQ
        
         # Create shape functions
         psi = shape_functions(x,xi,N,a*h)
@@ -240,20 +239,20 @@ function refinement_study(N,a,u_order,h_list,e_points)
         # Reproduce function, check error, error norm
         u_a = reproduce_u(psi,u)
         u_error = u_a - u_true
-        u_enorm[k] = norm(u_error)/length(x)^0.5
+        u_enorm[k] = GaussQuadrature.gauss(u_error.^2.,w)[1]^0.5
         
         # Reproduce function derivative, check error, error norm
         d_u_a = reproduce_u(d_psi,u)
         d_u_error = d_u_a - d_u_true
-        d_u_semi_enorm[k] = norm(d_u_error)/length(x)^0.5
+        d_u_semi_enorm[k] = GaussQuadrature.gauss(d_u_error.^2.,w)[1]^0.5
         d_u_enorm[k] = u_enorm[k] + d_u_semi_enorm[k]
 
         # Function Plots
         figure()
         subplot(2,2,1)
 	tight_layout(pad=6., w_pad=6., h_pad=6.)
-        title(string("N=",N," a=",a,
-		" uorder=",u_order," h=",h," e=",e_points))
+        title(string("N=",N,", a=",a,
+		", uorder=",u_order,", h=",h))
         plot(xi,u,label="in")
         plot(x,u_a,"g--",label="out")
         ylabel("u(x)")
@@ -285,7 +284,7 @@ function refinement_study(N,a,u_order,h_list,e_points)
         grid()
         
         savefig(string("pdfs/reproduced_N=",N,"_a=",a,
-		"_uorder=",u_order,"_h=",h,"_e=",e_points,".pdf"))
+		"_uorder=",u_order,"_h=",h,".pdf"))
 
         tend = time()
         println(string("Time to complete: ",tend-tstart))
@@ -297,12 +296,10 @@ function refinement_study(N,a,u_order,h_list,e_points)
 
     # All L2 Error Plots
     figure()
-    title(string("Error - N=",N," a=",a,
-        " uorder=",u_order," e=",e_points))
     subplot(3,1,1)
-    tight_layout(pad=3., w_pad=3., h_pad=3.)
-    loglog(h_list,u_enorm,label=
-	    string("N=",N," a=",a,"h uorder=",u_order," e=",e_points))
+    tight_layout(pad=5., w_pad=5., h_pad=5.)
+    loglog(h_list,u_enorm, label=string("Error - N=",N,", a=",a,
+        ", uorder=",u_order,", gorder=",g_order))
     annotate(string("Rate: ",u_e_slope)[1:12], xy=(h_list[end-1],u_enorm[end-1]),
              horizontalalignment="right") 
     ylabel("L2")
@@ -312,27 +309,23 @@ function refinement_study(N,a,u_order,h_list,e_points)
     
     # All H1 Error Plots
     subplot(3,1,2)
-    loglog(h_list,d_u_enorm,label=
-	    string("N=",N," a=",a,"h uorder=",u_order," e=",e_points))
+    loglog(h_list,d_u_enorm)
     annotate(string("Rate: ",d_e_slope)[1:12], xy=(h_list[end-1],d_u_enorm[end-1]),
              horizontalalignment="right") 
     ylabel("H1")
     xlabel("h size")
-    legend(loc="best")
     grid()
     
     # All H1 Error Plots
     subplot(3,1,3)
-    loglog(h_list,d_u_semi_enorm,label=
-	    string("N=",N," a=",a,"h uorder=",u_order," e=",e_points))
+    loglog(h_list,d_u_semi_enorm)
     annotate(string("Rate: ",d_se_slope)[1:12], xy=(h_list[end-1],d_u_semi_enorm[end-1]),
              horizontalalignment="right") 
     ylabel("H1 Semi-Norm")
     xlabel("h size")
-    legend(loc="best")
     grid()
     savefig(string("pdfs/error_reproduced_N=",N,"_a=",a,
-    	"_uorder=",u_order,"_e=",e_points,".pdf"))
+    	"_uorder=",u_order,"_gorder=",g_order,".pdf"))
 
     return u_enorm, d_u_enorm, d_u_semi_enorm
 end
@@ -340,9 +333,9 @@ end
 function run_u_refine()
     h_list = [0.1,0.01,0.001]
     
-    e_1, d_e_1, d_se_1 = refinement_study(1,1.1,2,h_list,10000)
-    e_2, d_e_2, d_se_2 = refinement_study(1,1.1,3,h_list,10000)
-    e_3, d_e_3, d_se_3 = refinement_study(2,2.1,3,h_list,10000)
+    e_1, d_e_1, d_se_1 = refinement_study(1,1.1,2,h_list,8)
+    e_2, d_e_2, d_se_2 = refinement_study(1,1.1,3,h_list,8)
+    e_3, d_e_3, d_se_3 = refinement_study(2,2.1,3,h_list,8)
 
     e_1_slope = (log(e_1[1])-log(e_1[end]))/(log(h_list[1])-log(h_list[end]))
     e_2_slope = (log(e_2[1])-log(e_2[end]))/(log(h_list[1])-log(h_list[end]))
@@ -356,10 +349,10 @@ function run_u_refine()
     
     figure()
     subplot(3,1,1)
-    tight_layout(pad=3., w_pad=3., h_pad=3.)
-    loglog(h_list,e_1,label=string("N=1 a=1.1*h uorder=2, e=1.E4"))
-    loglog(h_list,e_2,label=string("N=1 a=1.1*h uorder=3, e=1.E4"))
-    loglog(h_list,e_3,label=string("N=2 a=2.1*h uorder=3, e=1.E4"))
+    tight_layout(pad=5., w_pad=5., h_pad=5.)
+    loglog(h_list,e_1,label=string("Error - N=1, a=1.1*h, uorder=2, gorder=8"))
+    loglog(h_list,e_2,label=string("Error - N=1, a=1.1*h, uorder=3, gorder=8"))
+    loglog(h_list,e_3,label=string("Error - N=2, a=2.1*h, uorder=3, gorder=8"))
     annotate(string("Rate: ",e_1_slope)[1:12], xy=((h_list[end-1]+h_list[end])/2,(e_1[end-1]+e_1[end])/2),
              horizontalalignment="left",verticalalignment="top") 
     annotate(string("Rate: ",e_2_slope)[1:12], xy=(h_list[end-1],e_2[end-1]),
@@ -372,9 +365,9 @@ function run_u_refine()
     grid()
 
     subplot(3,1,2)
-    loglog(h_list,d_e_1,label=string("N=1 a=1.1*h uorder=2, e=1.E4"))
-    loglog(h_list,d_e_2,label=string("N=1 a=1.1*h uorder=3, e=1.E4"))
-    loglog(h_list,d_e_3,label=string("N=2 a=2.1*h uorder=3, e=1.E4"))
+    loglog(h_list,d_e_1,label=string("Error - N=1, a=1.1*h, uorder=2, gorder=8"))
+    loglog(h_list,d_e_2,label=string("Error - N=1, a=1.1*h, uorder=3, gorder=8"))
+    loglog(h_list,d_e_3,label=string("Error - N=2, a=2.1*h, uorder=3, gorder=8"))
     annotate(string("Rate: ",d_e_1_slope)[1:12], xy=((h_list[end-1]+h_list[end])/2,(d_e_1[end-1]+d_e_1[end])/2),
              horizontalalignment="left",verticalalignment="top") 
     annotate(string("Rate: ",d_e_2_slope)[1:12], xy=(h_list[end-1],d_e_2[end-1]),
@@ -387,9 +380,9 @@ function run_u_refine()
     grid()
 
     subplot(3,1,3)
-    loglog(h_list,d_se_1,label=string("N=1 a=1.1*h uorder=2, e=1.E4"))
-    loglog(h_list,d_se_2,label=string("N=1 a=1.1*h uorder=3, e=1.E4"))
-    loglog(h_list,d_se_3,label=string("N=2 a=2.1*h uorder=3, e=1.E4"))
+    loglog(h_list,d_se_1,label=string("Error - N=1, a=1.1*h, uorder=2, gorder=8"))
+    loglog(h_list,d_se_2,label=string("Error - N=1, a=1.1*h, uorder=3, gorder=8"))
+    loglog(h_list,d_se_3,label=string("Error - N=2, a=2.1*h, uorder=3, gorder=8"))
     annotate(string("Rate: ",d_se_1_slope)[1:12], xy=((h_list[end-1]+h_list[end])/2,(d_se_1[end-1]+d_se_1[end])/2),
              horizontalalignment="left",verticalalignment="top") 
     annotate(string("Rate: ",d_se_2_slope)[1:12], xy=(h_list[end-1],d_se_2[end-1]),
