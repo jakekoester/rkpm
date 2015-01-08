@@ -3,11 +3,12 @@
 //
 // Created by Jacob Koester on 1/5/15
 //
-// Provides four functions, use the third or foruth to call others:
+// Provides five functions, use the third to call first two:
 //      1) gauss_pts - lookup for gauss points
 //      2) gauss_wts - lookup for gauss weights
-//      3) interval_pts_and_wts - lookup for gauss points and weights, isoparametric interval (-1,1)
-//      4) pts_and_wts - lookup for gauss points and weigths, adjusted to real interval
+//      3) pts_and_wts - lookup for gauss points and weigths, adjusted to real interval
+//      4) integrate - given vectors of values and weights, multiply and sum
+//      5) test - run tests on some simple functions
 //
 #include "gauss_quadrature.h"
 
@@ -4739,7 +4740,6 @@ void test()
     std::cout << "Testing Gauss Quadrature\n";
     std::cout << "***************************\n\n";
 
-    
     // loop over set of test parameters
     for (i=0; i<10; ++i)
     {
@@ -4790,7 +4790,6 @@ void test()
                 std::cout << red << "FAIL!" << normal;
                 pass_test = false;
             }
-
         }
         std::cout << "\n***************************\n";
     }
