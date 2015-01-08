@@ -333,9 +333,9 @@ end
 function run_u_refine()
     h_list = [0.1,0.01,0.001]
     
-    e_1, d_e_1, d_se_1 = refinement_study(1,1.1,2,h_list,8)
-    e_2, d_e_2, d_se_2 = refinement_study(1,1.1,3,h_list,8)
-    e_3, d_e_3, d_se_3 = refinement_study(2,2.1,3,h_list,8)
+    e_1, d_e_1, d_se_1 = refinement_study(1,1.5,2,h_list,8)
+    e_2, d_e_2, d_se_2 = refinement_study(1,1.5,3,h_list,8)
+    e_3, d_e_3, d_se_3 = refinement_study(2,2.5,3,h_list,8)
 
     e_1_slope = (log(e_1[1])-log(e_1[end]))/(log(h_list[1])-log(h_list[end]))
     e_2_slope = (log(e_2[1])-log(e_2[end]))/(log(h_list[1])-log(h_list[end]))
@@ -350,9 +350,9 @@ function run_u_refine()
     figure()
     subplot(3,1,1)
     tight_layout(pad=5., w_pad=5., h_pad=5.)
-    loglog(h_list,e_1,label=string("Error - N=1, a=1.1*h, uorder=2, gorder=8"))
-    loglog(h_list,e_2,label=string("Error - N=1, a=1.1*h, uorder=3, gorder=8"))
-    loglog(h_list,e_3,label=string("Error - N=2, a=2.1*h, uorder=3, gorder=8"))
+    loglog(h_list,e_1,label=string("Error - N=1, a=1.5*h, uorder=2, gorder=8"))
+    loglog(h_list,e_2,label=string("Error - N=1, a=1.5*h, uorder=3, gorder=8"))
+    loglog(h_list,e_3,label=string("Error - N=2, a=2.5*h, uorder=3, gorder=8"))
     annotate(string("Rate: ",e_1_slope)[1:12], xy=((h_list[end-1]+h_list[end])/2,(e_1[end-1]+e_1[end])/2),
              horizontalalignment="left",verticalalignment="top") 
     annotate(string("Rate: ",e_2_slope)[1:12], xy=(h_list[end-1],e_2[end-1]),
@@ -365,9 +365,9 @@ function run_u_refine()
     grid()
 
     subplot(3,1,2)
-    loglog(h_list,d_e_1,label=string("Error - N=1, a=1.1*h, uorder=2, gorder=8"))
-    loglog(h_list,d_e_2,label=string("Error - N=1, a=1.1*h, uorder=3, gorder=8"))
-    loglog(h_list,d_e_3,label=string("Error - N=2, a=2.1*h, uorder=3, gorder=8"))
+    loglog(h_list,d_e_1,label=string("Error - N=1, a=1.5*h, uorder=2, gorder=8"))
+    loglog(h_list,d_e_2,label=string("Error - N=1, a=1.5*h, uorder=3, gorder=8"))
+    loglog(h_list,d_e_3,label=string("Error - N=2, a=2.5*h, uorder=3, gorder=8"))
     annotate(string("Rate: ",d_e_1_slope)[1:12], xy=((h_list[end-1]+h_list[end])/2,(d_e_1[end-1]+d_e_1[end])/2),
              horizontalalignment="left",verticalalignment="top") 
     annotate(string("Rate: ",d_e_2_slope)[1:12], xy=(h_list[end-1],d_e_2[end-1]),
@@ -380,9 +380,9 @@ function run_u_refine()
     grid()
 
     subplot(3,1,3)
-    loglog(h_list,d_se_1,label=string("Error - N=1, a=1.1*h, uorder=2, gorder=8"))
-    loglog(h_list,d_se_2,label=string("Error - N=1, a=1.1*h, uorder=3, gorder=8"))
-    loglog(h_list,d_se_3,label=string("Error - N=2, a=2.1*h, uorder=3, gorder=8"))
+    loglog(h_list,d_se_1,label=string("Error - N=1, a=1.5*h, uorder=2, gorder=8"))
+    loglog(h_list,d_se_2,label=string("Error - N=1, a=1.5*h, uorder=3, gorder=8"))
+    loglog(h_list,d_se_3,label=string("Error - N=2, a=2.5*h, uorder=3, gorder=8"))
     annotate(string("Rate: ",d_se_1_slope)[1:12], xy=((h_list[end-1]+h_list[end])/2,(d_se_1[end-1]+d_se_1[end])/2),
              horizontalalignment="left",verticalalignment="top") 
     annotate(string("Rate: ",d_se_2_slope)[1:12], xy=(h_list[end-1],d_se_2[end-1]),
