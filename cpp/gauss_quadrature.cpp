@@ -4729,6 +4729,10 @@ void test()
     bool pass_test = true; // bool for checking if all tests are passed
     int i,j,k; //counters
     
+    char red[] = { 0x1b, '[', '1', ';', '3', '1', 'm', 0 };
+    char green[] = { 0x1b, '[', '1', ';', '3', '2', 'm', 0 };
+    char normal[] = { 0x1b, '[', '0', ';', '3', '9', 'm', 0 };
+    
     std::cout << "\n***************************\n";
     std::cout << "***************************\n";
     std::cout << "***************************\n";
@@ -4779,11 +4783,11 @@ void test()
             std::cout << "Exact Integration Expected, Result: ";
             if (std::abs(error) < 1.e-15)
             {
-                std::cout << "PASS!";
+                std::cout << green << "PASS!" << normal;
             }
             else
             {
-                std::cout << "FAIL!";
+                std::cout << red << "FAIL!" << normal;
                 pass_test = false;
             }
 
@@ -4792,14 +4796,14 @@ void test()
     }
     if (pass_test)
     {
-        std::cout << "\n***************************\n";
+        std::cout << green << "\n***************************\n";
         std::cout << "PASSED ALL TESTS!";
-        std::cout << "\n***************************\n";
+        std::cout << "\n***************************\n" << normal;
     }
     else
     {
-        std::cout << "\n***************************\n";
+        std::cout << red << "\n***************************\n";
         std::cout << "FAILED ONE OR MORE TESTS!";
-        std::cout << "\n***************************\n";
+        std::cout << "\n***************************\n" << normal;
     }
 }
