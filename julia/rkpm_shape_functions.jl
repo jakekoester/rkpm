@@ -245,7 +245,7 @@ function refinement_study(N,a,u_order,h_list,g_order)
         d_u_a = reproduce_u(d_psi,u)
         d_u_error = d_u_a - d_u_true
         d_u_semi_enorm[k] = GaussQuadrature.gauss(d_u_error.^2.,w)[1]^0.5
-        d_u_enorm[k] = u_enorm[k] + d_u_semi_enorm[k]
+        d_u_enorm[k] = GaussQuadrature.gauss(u_error.^2.+d_u_error.^2.,w)[1]^0.5
 
         # Function Plots
         figure()
