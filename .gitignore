@@ -2,3 +2,6 @@
 *.pdf
 pdfs
 .ipynb_checkpoint*
+cpp/test*
+*.DS_Store
+cpp/rkpm_xcode
